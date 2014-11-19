@@ -1,0 +1,19 @@
+{
+  "apps" : [{
+    "name"         : "upload-fathom",
+    "script"       : "server.js",
+    "args"         : "['-p', '3003', '-s', 'ucn', 'fathom']",
+    "instances"    : "4",
+    "exec_mode"    : "cluster_mode",
+    "error_file"   : "/home/nodeapp/logs/upload-fathom-error.log",
+    "out_file"     : "/home/nodeapp/logs/upload-fathom.log",
+    "pid_file"     : "/home/nodeapp/pids/upload-fathom",
+    "run_as_user"  : "nodeapp",
+    "run_as_group" : "nodeapp",
+    "cwd"          : "/home/nodeapp/apps/fathomupload",
+    "env": {
+        "NODE_ENV" : "production",
+        "DEBUG"    : "uploader"
+    }
+  }]
+}

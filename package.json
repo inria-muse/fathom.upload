@@ -1,0 +1,19 @@
+{
+  "name": "fathomuploader",
+  "description": "Simple mongodb data uploader web service to receive POST data to the db.",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "pm2 start processes.json",
+    "stop": "pm2 stop processes.json"
+  },
+  "dependencies": {
+    "debug": "latest", 
+    "express": "4.x",
+    "multiparty": "latest",
+    "body-parser": "latest",
+    "minimist": "latest",
+    "mongodb": "latest",
+    "underscore": "latest"
+  }
+}
