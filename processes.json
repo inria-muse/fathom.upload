@@ -1,16 +1,16 @@
 {
   "apps" : [{
-    "name"         : "upload-fathom",
+    "name"         : "browserupload",
     "script"       : "server.js",
-    "args"         : "['-p', '3003', '-s', 'ucn', 'fathom']",
+    "args"         : "['-p', '3003', '-s', 'ucn', 'browser']",
     "instances"    : "4",
     "exec_mode"    : "cluster_mode",
-    "error_file"   : "/home/nodeapp/logs/upload-fathom-error.log",
-    "out_file"     : "/home/nodeapp/logs/upload-fathom.log",
-    "pid_file"     : "/home/nodeapp/pids/upload-fathom",
+    "error_file"   : "/home/nodeapp/logs/browserupload-error.log",
+    "out_file"     : "/home/nodeapp/logs/browserupload.log",
+    "pid_file"     : "/home/nodeapp/pids/browserupload",
     "run_as_user"  : "nodeapp",
     "run_as_group" : "nodeapp",
-    "cwd"          : "/home/nodeapp/apps/fathomupload",
+    "cwd"          : "/home/nodeapp/apps/browserupload",
     "env": {
         "NODE_ENV" : "production",
         "DEBUG"    : "uploader"
