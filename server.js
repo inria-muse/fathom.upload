@@ -73,6 +73,8 @@ app.post('/*', function(req,res) {
 	    obj['ts'] = new Date(obj['ts']);
 	if (obj['uploadts'])
 	    obj['uploadts'] = new Date(obj['uploadts']);
+	if (obj['queuets'])
+	    obj['queuets'] = new Date(obj['queuets']);
 
 	// add some more metadata to the object
 	obj.upload = { serverts : new Date(),
