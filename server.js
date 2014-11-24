@@ -80,9 +80,9 @@ app.use(function(err, req, res, next){
 // GET returns some basic stats about the server
 app.get('/*', function(req, res){
     client.hgetall("stats", function(err, obj) {
-	res.type('application/json');
+	res.type('text/plain');
 	obj.uptime = "Started " + moment(new Date(obj.start).getTime()).fromNow();
-	res.status(200).send(obj);
+	res.status(200).send(JSON.stringify(obj,null,4));
     });
 });
 
