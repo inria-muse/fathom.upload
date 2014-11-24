@@ -14,6 +14,7 @@
     "body-parser": "latest",
     "minimist": "latest",
     "mongodb": "latest",
-    "underscore": "latest"
+    "underscore": "latest",
+    "redis" : "latest"
   }
 }
