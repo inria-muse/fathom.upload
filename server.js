@@ -52,6 +52,7 @@ client.hmset("stats", {
     start : new Date(),
     uploadcnt : 0,
     lastupload : 0,
+    errorcnt : 0,
     lasterror : 0 });
 
 // main app
@@ -72,6 +73,15 @@ app.use(bodyParser.json())
 app.use(function(err, req, res, next){
     debug(err);
     debug(err.stack);
+
+    try {
+	if (client) {
+	    client.hmset("stats", { lasterror : new Date() });
+	    client.hincr("stats", "errorcnt");
+	}
+    } catch(e) {
+    }
+
     res.type('application/json');
     res.status(500).send({ error: "internal server error",
 			   details: err});
@@ -129,7 +139,9 @@ app.post('/*', function(req,res) {
 	    
 	if (error) {
 	    debug("failed to save data to mongodb: " + error);
+
 	    client.hmset("stats", { lasterror : new Date() });
+	    client.hincr("stats", "errorcnt");
 
 	    res.type('application/json');
 	    res.status(500).send({error: "internal server error",
@@ -167,6 +179,10 @@ app.post('/*', function(req,res) {
 	form.on('error', function(err) {
 	    debug(err);
 	    debug(err.stack);
+
+	    client.hmset("stats", { lasterror : new Date() });
+	    client.hincr("stats", "errorcnt");
+
 	    res.type('application/json');	    
 	    res.status(500).send({ error: "internal server error",
 				   details: err});
@@ -192,10 +208,17 @@ app.post('/*', function(req,res) {
 	    savedocs();
 	} else {
 	    debug("invalid req.body: " + JSON.stringify(req.body));
+
+	    client.hmset("stats", { lasterror : new Date() });
+	    client.hincr("stats", "errorcnt");
+
 	    res.type('application/json'); 
 	    res.status(500).send({error: "invalid data"});
 	}
     } else {
+	client.hmset("stats", { lasterror : new Date() });
+	client.hincr("stats", "errorcnt");
+
 	res.type('application/json');
 	res.status(500).send({error: "unhandled content type: "+req.get('Content-Type')});
     }
