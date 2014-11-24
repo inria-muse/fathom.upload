@@ -15,6 +15,7 @@
     "minimist": "latest",
     "mongodb": "latest",
     "underscore": "latest",
-    "redis" : "latest"
+    "redis" : "latest",
+    "moment" : "latest"
   }
 }

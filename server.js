@@ -4,7 +4,8 @@ var argv = require('minimist')(process.argv.slice(2));
 var express = require('express');
 var multiparty = require('multiparty');
 var bodyParser = require('body-parser')
- var redis = require("redis");
+var redis = require("redis");
+var moment = require("moment");
 
 // mongo stuff
 var Db = require('mongodb').Db;
@@ -80,7 +81,7 @@ app.use(function(err, req, res, next){
 app.get('/*', function(req, res){
     client.hgetall("stats", function(err, obj) {
 	res.type('application/json');
-	obj.uptime = (Date.now() - new Date(obj.start).getTime())/(1000.0 * 3600.0) + " hours";
+	obj.uptime = "Started " + moment(new Date(obj.start).getTime()).fromNow();
 	res.status(200).send(obj);
     });
 });
