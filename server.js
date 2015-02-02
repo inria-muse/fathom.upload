@@ -12,10 +12,11 @@ var Db = require('mongodb').Db;
 var Server = require('mongodb').Server;
 
 debug(JSON.stringify(argv));
+
 if (argv.h || argv._.length !== 1) {
   console.log("Usage: " + process.argv[0] + 
 	" " + process.argv[1] + 
-	" [-p <port>] [-s server] [-q server_port] db");
+	" [-p <port>] [-s mongo_server] [-q mongo_server_port] db");
   process.exit(0);
 }
 
@@ -24,6 +25,7 @@ var client = redis.createClient();
 client.select(2, function(res) {
     debug("Redis select " + res);
 });
+
 client.on("error", function(err) {
     debug("Redis error " + err);
 });
@@ -40,6 +42,7 @@ debug("mongodb: " + dburl);
 var db = new Db(dbname, 
 		new Server(server, serverport, {auto_reconnect: true}), 
 		{safe: true});
+
 db.open(function(err, db) {
     if (err) {
 	console.error(err);
@@ -48,8 +51,10 @@ db.open(function(err, db) {
 });
 
 // reset stats
-client.hmset("stats", {
+var rstats = 'fathomupload';
+client.hmset(rstats, {
     start : new Date(),
+    removeusercnt : 0,
     uploadcnt : 0,
     lastupload : 0,
     errorcnt : 0,
@@ -76,8 +81,8 @@ app.use(function(err, req, res, next){
 
     try {
 	if (client) {
-	    client.hmset("stats", { lasterror : new Date() });
-	    client.hincr("stats", "errorcnt");
+	    client.hmset(rstats, { lasterror : new Date() });
+	    client.hincr(rstats, "errorcnt");
 	}
     } catch(e) {
     }
@@ -89,10 +94,34 @@ app.use(function(err, req, res, next){
 
 // GET returns some basic stats about the server
 app.get('/*', function(req, res){
-    client.hgetall("stats", function(err, obj) {
+    client.hgetall(rstats, function(err, obj) {
 	res.type('text/plain');
 	obj.uptime = "Started " + moment(new Date(obj.start).getTime()).fromNow();
 	res.status(200).send(JSON.stringify(obj,null,4));
+    });
+});
+
+// Handle requests to remove user data
+app.all('/removeuser/:uuid', function(req,res) {
+    var obj = {
+	uuid : req.params.uuid, 
+	ts : new Date().getTime(),
+	req_ip : req.ip
+    };
+
+    var collection = db.collection("removeuserreqs");
+    collection.insert(obj, function(err, result) {
+	if (err) {
+	    debug("failed to save removeuserreq to mongodb: " + err);
+
+	    res.type('application/json');
+	    res.status(500).send({error: "internal server error",
+				  details: err});
+	} else {
+	    client.hincrby(rstats, "removeusercnt", c);
+	    res.status(200).send();
+	    // TODO: send email to notify muse.fathom@inria.fr ?
+	}
     });
 });
 
@@ -100,7 +129,17 @@ app.get('/*', function(req, res){
 app.post('/*', function(req,res) {
     var c = 0;
     var docs = {};
+
     var adddoc = function(obj) {
+	// required fields
+	if (!obj.collection || !obj.uuid || !obj.objectid) {
+	    debug("invalid object: " + JSON.stringify(obj));  
+	    return;
+	}
+
+	var collectionname = obj.collection;
+	delete obj.collection;
+
 	// convert few known date fields to native mongo format
 	if (obj['ts'])
 	    obj['ts'] = new Date(obj['ts']);
@@ -110,46 +149,62 @@ app.post('/*', function(req,res) {
 	    obj['queuets'] = new Date(obj['queuets']);
 
 	// add some more metadata to the object
-	obj.upload = { serverts : new Date(),
-		       req_ip : req.ip };
+	obj.upload = { 
+	    serverts : new Date(),
+	    req_ip : req.ip 
+	};
 
-	if (!docs[obj.collection]) {
-	    docs[obj.collection] = [];
-	}
-
-	docs[obj.collection].push(obj);
+	if (!docs[collectionname])
+	    docs[collectionname] = [];
+	docs[collectionname].push(obj);
 	c += 1;
     };
-    var savedocs = function() {
-	if (c === 0) return;
 
+    var savedocs = function() {
+	if (c === 0) {
+	    client.hmset(rstats, { lasterror : new Date() });
+	    client.hincr(rstats, "errorcnt");
+
+	    res.type('application/json');
+	    res.status(500).send({error: "got zero objects"});
+	    return;
+	}
 	debug("saving " + c + " items");  
 	var error = undefined;
+
 	_.each(docs, function(value, key) {
-	    if (error) return;	
+	    if (error) return; // stop on first error
 
 	    // insert batch to the collection
 	    debug("save " + value.length + " items to " + key);
 
 	    var collection = db.collection(key);
-	    collection.insert(value, {w:1}, function(err, result) {
-		if (err)  error = err;
-	    });
+	    collection.ensureIndex(
+		{uuid:1, objectid:1}, // unique identifiers for this data
+		{unique: true}, 
+		function(err, result) {
+		    if (err)  
+			error = err;
+		    else
+			collection.insert(value, function(err, result) {
+			    if (err)  error = err;
+			});
+		});
 	}); // each
 	    
 	if (error) {
 	    debug("failed to save data to mongodb: " + error);
 
-	    client.hmset("stats", { lasterror : new Date() });
-	    client.hincr("stats", "errorcnt");
+	    client.hmset(rstats, { lasterror : new Date() });
+	    client.hincr(rstats, "errorcnt");
 
 	    res.type('application/json');
 	    res.status(500).send({error: "internal server error",
 				  details: error});
 	} else {
 	    // stats
-	    client.hmset("stats", { lastupload : new Date() });
-	    client.hincrby("stats", "uploadcnt", c);
+	    client.hmset(rstats, { lastupload : new Date() });
+	    client.hincrby(rstats, "uploadcnt", c);
 	    res.sendStatus(200);
 	}
     };
@@ -180,8 +235,8 @@ app.post('/*', function(req,res) {
 	    debug(err);
 	    debug(err.stack);
 
-	    client.hmset("stats", { lasterror : new Date() });
-	    client.hincr("stats", "errorcnt");
+	    client.hmset(rstats, { lasterror : new Date() });
+	    client.hincr(rstats, "errorcnt");
 
 	    res.type('application/json');	    
 	    res.status(500).send({ error: "internal server error",
@@ -209,15 +264,15 @@ app.post('/*', function(req,res) {
 	} else {
 	    debug("invalid req.body: " + JSON.stringify(req.body));
 
-	    client.hmset("stats", { lasterror : new Date() });
-	    client.hincr("stats", "errorcnt");
+	    client.hmset(rstats, { lasterror : new Date() });
+	    client.hincr(rstats, "errorcnt");
 
 	    res.type('application/json'); 
 	    res.status(500).send({error: "invalid data"});
 	}
     } else {
-	client.hmset("stats", { lasterror : new Date() });
-	client.hincr("stats", "errorcnt");
+	client.hmset(rstats, { lasterror : new Date() });
+	client.hincr(rstats, "errorcnt");
 
 	res.type('application/json');
 	res.status(500).send({error: "unhandled content type: "+req.get('Content-Type')});
