@@ -48,6 +48,21 @@ db.open(function(err, db) {
 	console.error(err);
 	process.exit(-1);
     }
+
+    // ensure indexes for known collections
+    _.each(['fathomstats','homenet','baseline','debugtool'],function(key) {
+	var collection = db.collection(key);
+	collection.ensureIndex(
+	    {uuid:1, objectid:1}, // unique identifiers for this data
+	    {unique: true}, 
+	    function(err, result) {
+		if (err) { 
+		    debug("failed to set index: " + err);
+		    process.exit(-1);
+		}
+	    }
+	);
+    });
 });
 
 // reset stats
@@ -169,6 +184,7 @@ app.post('/*', function(req,res) {
 	    res.status(500).send({error: "got zero objects"});
 	    return;
 	}
+
 	debug("saving " + c + " items");  
 	var error = undefined;
 
@@ -179,22 +195,15 @@ app.post('/*', function(req,res) {
 	    debug("save " + value.length + " items to " + key);
 
 	    var collection = db.collection(key);
-	    collection.ensureIndex(
-		{uuid:1, objectid:1}, // unique identifiers for this data
-		{unique: true}, 
-		function(err, result) {
-		    if (err)  
-			error = err;
-		    else
-			collection.insert(value, function(err, result) {
-			    if (err)  error = err;
-			});
-		});
+	    collection.insert(value, function(err, result) {
+		if (err) {
+		    debug("failed to save data to mongodb: " + err);
+		    error = err;
+		}
+	    });
 	}); // each
 	    
 	if (error) {
-	    debug("failed to save data to mongodb: " + error);
-
 	    client.hmset(rstats, { lasterror : new Date() });
 	    client.hincr(rstats, "errorcnt");
 
