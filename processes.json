@@ -2,7 +2,7 @@
   "apps" : [{
     "name"         : "browserupload",
     "script"       : "server.js",
-    "args"         : "['-p', '3003', '-s', 'ucn', 'browser']",
+    "args"         : "['-p', '3003', '-s', 'ucn.inria.fr', 'browsertest']",
     "instances"    : "4",
     "exec_mode"    : "cluster_mode",
     "error_file"   : "/home/nodeapp/logs/browserupload-error.log",
