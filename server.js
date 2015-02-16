@@ -52,9 +52,23 @@ db.open(function(err, db) {
     // ensure indexes for known collections
     _.each(['fathomstats','homenet','baseline','debugtool'],function(key) {
 	var collection = db.collection(key);
+
+	// per item index for quaranteed uniqueness
 	collection.ensureIndex(
-	    {uuid:1, objectid:1}, // unique identifiers for this data
+	    {uuid:1, objectid:1},
 	    {unique: true}, 
+	    function(err, result) {
+		if (err) { 
+		    debug("failed to set index: " + err);
+		    process.exit(-1);
+		}
+	    }
+	);
+
+	// per user index for quick access to single user data
+	collection.ensureIndex(
+	    {uuid:1},
+	    {unique: false}, 
 	    function(err, result) {
 		if (err) { 
 		    debug("failed to set index: " + err);
@@ -97,7 +111,7 @@ app.use(function(err, req, res, next){
     try {
 	if (client) {
 	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincr(rstats, "errorcnt");
+	    client.hincrby(rstats, "errorcnt", 1);
 	}
     } catch(e) {
     }
@@ -178,7 +192,7 @@ app.post('/*', function(req,res) {
     var savedocs = function() {
 	if (c === 0) {
 	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincr(rstats, "errorcnt");
+	    client.hincrby(rstats, "errorcnt", 1);
 
 	    res.type('application/json');
 	    res.status(500).send({error: "got zero objects"});
@@ -205,7 +219,7 @@ app.post('/*', function(req,res) {
 	    
 	if (error) {
 	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincr(rstats, "errorcnt");
+	    client.hincrby(rstats, "errorcnt", 1);
 
 	    res.type('application/json');
 	    res.status(500).send({error: "internal server error",
@@ -245,7 +259,7 @@ app.post('/*', function(req,res) {
 	    debug(err.stack);
 
 	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincr(rstats, "errorcnt");
+	    client.hincrby(rstats, "errorcnt", 1);
 
 	    res.type('application/json');	    
 	    res.status(500).send({ error: "internal server error",
@@ -274,14 +288,14 @@ app.post('/*', function(req,res) {
 	    debug("invalid req.body: " + JSON.stringify(req.body));
 
 	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincr(rstats, "errorcnt");
+	    client.hincrby(rstats, "errorcnt", 1);
 
 	    res.type('application/json'); 
 	    res.status(500).send({error: "invalid data"});
 	}
     } else {
 	client.hmset(rstats, { lasterror : new Date() });
-	client.hincr(rstats, "errorcnt");
+	client.hincrby(rstats, "errorcnt", 1);
 
 	res.type('application/json');
 	res.status(500).send({error: "unhandled content type: "+req.get('Content-Type')});
