@@ -231,9 +231,7 @@ app.post('/*', function(req,res) {
                     if (("" + err).indexOf('must not contain \'')>=0) {
                         // HACK --
                         // MongoDB hack needed, no dots or dollar signs in key names ..
-                        docs = _.maps(docs, function(d) {
-                            return escape(d);
-                        });
+                        value = escape(value);
 	                collection.insert(value, function(err, result) {
 		            if (err) {
 		                debug("failed to save data to mongodb: " + err);
