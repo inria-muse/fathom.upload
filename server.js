@@ -168,6 +168,8 @@ app.post('/*', function(req,res) {
             if (obj.hasOwnProperty(property)) {
                 if (typeof obj[property] == 'object') {
                     obj[escapestr(property)] = escape(obj[property]);
+                } else if (typeof obj[property] == 'array') {
+                    obj[escapestr(property)] = _.map(obj[property],escape);
                 } else {
                     obj[escapestr(property)] = obj[property];
                 }
