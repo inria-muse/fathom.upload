@@ -227,7 +227,8 @@ app.post('/*', function(req,res) {
 	    var collection = db.collection(key);
 	    collection.insert(value, function(err, result) {
 		if (err) {
-                    if (err.indexOf('must not contain \'')>=0) {
+                    // FIXME: check the err format ... 
+                    if (("" + err).indexOf('must not contain \'')>=0) {
                         // HACK --
                         // MongoDB hack needed, no dots or dollar signs in key names ..
                         docs = _.maps(docs, function(d) {
