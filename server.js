@@ -166,7 +166,7 @@ app.post('/*', function(req,res) {
 
 	_.each(obj, function(value,oldkey) {
 	    var newkey = escapestr(oldkey);
-	    if (newkey !== oldkey
+	    if (newkey !== oldkey)
 		debug("escape: " + oldkey + " -> " + newkey);
             if (_.isObject(value) || _.isArray(value)) {
                 obj[newkey] = escape(value);
