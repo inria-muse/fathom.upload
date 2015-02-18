@@ -6,13 +6,10 @@ var multiparty = require('multiparty');
 var bodyParser = require('body-parser')
 var redis = require("redis");
 var moment = require("moment");
-
-// mongo stuff
 var Db = require('mongodb').Db;
 var Server = require('mongodb').Server;
 
 debug(JSON.stringify(argv));
-
 if (argv.h || argv._.length !== 1) {
   console.log("Usage: " + process.argv[0] + 
 	" " + process.argv[1] + 
@@ -230,8 +227,8 @@ app.post('/*', function(req,res) {
 	    collection.insert(value, function(err, result) {
 		if (err) {
                     // FIXME: check the err format ... 
-		    console.log(JSON.stringify(err));
-		    console.log(typeof err);
+		    debug(err, JSON.stringify(err));
+		    debug(typeof err);
                     if (("" + err).indexOf('duplicate key error')>=0) {
 			// ignore: something was uploaded twice
 		    } else if (("" + err).indexOf('must not contain')>=0) {
@@ -239,9 +236,13 @@ app.post('/*', function(req,res) {
                         // MongoDB hack needed, no dots or dollar signs 
 			// allowed in key names ..
 			debug("mongo escape hack needed");
-                        value = escape(value);
+                        value = _.map(value, escape);
 	                collection.insert(value, function(err, result) {
-		            if (err) {
+			    if (err && 
+				("" + err).indexOf('duplicate key error')>=0) 
+			    {
+				// ignore: something was uploaded twice
+			    } else if (err) {
 		                debug("failed to save data to mongodb: " + err);
 		                error = err;
                             }
