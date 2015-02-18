@@ -230,9 +230,15 @@ app.post('/*', function(req,res) {
 	    collection.insert(value, function(err, result) {
 		if (err) {
                     // FIXME: check the err format ... 
-                    if (("" + err).indexOf('must not contain \'')>=0) {
+		    console.log(JSON.stringify(err));
+		    console.log(typeof err);
+                    if (("" + err).indexOf('duplicate key error')>=0) {
+			// ignore: something was uploaded twice
+		    } else if (("" + err).indexOf('must not contain')>=0) {
                         // HACK --
-                        // MongoDB hack needed, no dots or dollar signs in key names ..
+                        // MongoDB hack needed, no dots or dollar signs 
+			// allowed in key names ..
+			debug("mongo escape hack needed");
                         value = escape(value);
 	                collection.insert(value, function(err, result) {
 		            if (err) {
