@@ -156,22 +156,23 @@ app.post('/*', function(req,res) {
     var c = 0;
     var docs = {};
 
-    var escapestr = function(str) {
-        return str.replace(/\./g,'__dot__').replace(/$/g,'__dollar__');
+    var escapestr = function(s) {
+        return s.replace(/\./g,'__dot__').replace(/$/g,'__dollar__');
     }
     
     var escape = function(obj) {
-        for (var property in obj) {
-            if (obj.hasOwnProperty(property)) {
-                if (typeof obj[property] == 'object') {
-                    obj[escapestr(property)] = escape(obj[property]);
-                } else if (typeof obj[property] == 'array') {
-                    obj[escapestr(property)] = _.map(obj[property],escape);
-                } else {
-                    obj[escapestr(property)] = obj[property];
-                }
+	if (_.isArray(obj))
+	    return _.map(obj, escape);
+
+	_.each(obj, function(value,oldkey) {
+	    var newkey = escapestr(oldkey);
+            if (_.isObject(value) || _.isArray(value)) {
+                obj[newkey] = escape(value);
+            } else {
+		// primitive value
+                obj[newkey] = value;
             }
-        }
+        });
         return obj;
     }
     
@@ -227,8 +228,9 @@ app.post('/*', function(req,res) {
 	    collection.insert(value, function(err, result) {
 		if (err) {
                     // FIXME: check the err format ... 
-		    debug(err, JSON.stringify(err));
-		    debug(typeof err);
+		    debug(err);
+		    debug(JSON.stringify(err));
+		    debug(_.keys(err));
                     if (("" + err).indexOf('duplicate key error')>=0) {
 			// ignore: something was uploaded twice
 		    } else if (("" + err).indexOf('must not contain')>=0) {
@@ -236,7 +238,8 @@ app.post('/*', function(req,res) {
                         // MongoDB hack needed, no dots or dollar signs 
 			// allowed in key names ..
 			debug("mongo escape hack needed");
-                        value = _.map(value, escape);
+                        value = escape(value);
+			// try again
 	                collection.insert(value, function(err, result) {
 			    if (err && 
 				("" + err).indexOf('duplicate key error')>=0) 
