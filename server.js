@@ -157,7 +157,7 @@ app.post('/*', function(req,res) {
     var docs = {};
 
     var escapestr = function(s) {
-        return s.replace(/\./g,'__dot__').replace(/$/g,'__dollar__');
+        return s.replace(/\./g,'__dot__').replace(/\$/g,'__dollar__');
     }
     
     var escape = function(obj) {
@@ -166,7 +166,8 @@ app.post('/*', function(req,res) {
 
 	_.each(obj, function(value,oldkey) {
 	    var newkey = escapestr(oldkey);
-	    debug(oldkey + " -> " + newkey);
+	    if (newkey !== oldkey
+		debug("escape: " + oldkey + " -> " + newkey);
             if (_.isObject(value) || _.isArray(value)) {
                 obj[newkey] = escape(value);
             } else {
