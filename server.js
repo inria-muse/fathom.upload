@@ -230,8 +230,6 @@ app.post('/*', function(req,res) {
 	    var collection = db.collection(key);
 	    collection.insert(value, function(err, result) {
 		if (err) {
-                    // FIXME: check the err format ... 
-		    debug(err);
                     if (("" + err).indexOf('duplicate key error')>=0) {
 			// ignore: something was uploaded twice
 		    } else if (("" + err).indexOf('must not contain')>=0) {
@@ -253,7 +251,8 @@ app.post('/*', function(req,res) {
                         });
                         // HACK end --
                     } else {
-		        debug("failed to save data to mongodb: " + err);
+		        debug("failed to save data to mongodb");
+			debug(err);
 		        error = err;
                     }
 		}
