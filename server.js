@@ -166,12 +166,14 @@ app.post('/*', function(req,res) {
 
 	_.each(obj, function(value,oldkey) {
 	    var newkey = escapestr(oldkey);
+	    debug(oldkey + " -> " + newkey);
             if (_.isObject(value) || _.isArray(value)) {
                 obj[newkey] = escape(value);
             } else {
 		// primitive value
                 obj[newkey] = value;
             }
+	    delete obj[oldkey];
         });
         return obj;
     }
@@ -229,8 +231,6 @@ app.post('/*', function(req,res) {
 		if (err) {
                     // FIXME: check the err format ... 
 		    debug(err);
-		    debug(JSON.stringify(err));
-		    debug(_.keys(err));
                     if (("" + err).indexOf('duplicate key error')>=0) {
 			// ignore: something was uploaded twice
 		    } else if (("" + err).indexOf('must not contain')>=0) {
