@@ -1,18 +1,20 @@
 {
   "apps" : [{
-    "name"         : "browserupload",
+    "name"         : "fathomupload",
     "script"       : "server.js",
-    "args"         : "['-p', '3003', '-s', 'ucn.inria.fr', 'browsertest']",
-    "instances"    : "4",
+    "instances"    : "10",
     "exec_mode"    : "cluster_mode",
-    "error_file"   : "/home/nodeapp/logs/browserupload-error.log",
-    "out_file"     : "/home/nodeapp/logs/browserupload.log",
-    "pid_file"     : "/home/nodeapp/pids/browserupload",
+    "error_file"   : "/home/nodeapp/logs/fathomupload.log",
+    "out_file"     : "/home/nodeapp/logs/fathomupload.log",
+    "pid_file"     : "/home/nodeapp/pids/fathomupload",
     "run_as_user"  : "nodeapp",
     "run_as_group" : "nodeapp",
     "cwd"          : "/home/nodeapp/apps/browserupload",
     "env": {
         "NODE_ENV" : "production",
+	"PORT"     : "3003",
+	"MONGOHOST": "ucn.inria.fr",
+	"MONGODB"  : "browsertest",
         "DEBUG"    : "uploader"
     }
   }]
