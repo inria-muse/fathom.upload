@@ -15,7 +15,7 @@
 	"PORT"     : "3003",
 	"MONGOHOST": "ucn.inria.fr",
 	"MONGODB"  : "browsertest",
-        "DEBUG"    : "uploader"
+        "DEBUG"    : "*"
     }
   }]
 }

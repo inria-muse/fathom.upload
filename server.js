@@ -213,6 +213,7 @@ app.post('/*', function(req,res) {
 	}
 
 	debug("saving " + c + " items");  
+
 	var error = undefined;
 	_.each(docs, function(value, key) {
 	    if (error) return; // stop on first error
@@ -223,29 +224,28 @@ app.post('/*', function(req,res) {
 	    var collection = db.collection(key);
 	    collection.insert(value, function(err, result) {
 		if (err) {
+		    debug('save err ' + err);
                     if (("" + err).indexOf('duplicate key error')>=0) {
 			// ignore: something was uploaded twice
 		    } else if (("" + err).indexOf('must not contain')>=0) {
                         // HACK --
                         // MongoDB hack needed, no dots or dollar signs 
 			// allowed in key names ..
-			debug("mongo escape hack needed");
+			debug("mongo escape hack");
                         value = escape(value);
 			// try again
 	                collection.insert(value, function(err, result) {
+			    debug('save err after hack ' + err);
 			    if (err && 
 				("" + err).indexOf('duplicate key error')>=0) 
 			    {
 				// ignore: something was uploaded twice
 			    } else if (err) {
-		                debug("failed to save data to mongodb: " + err);
 		                error = err;
                             }
                         });
                         // HACK end --
                     } else {
-		        debug("failed to save data to mongodb");
-			debug(err);
 		        error = err;
                     }
 		}
@@ -253,6 +253,7 @@ app.post('/*', function(req,res) {
 	}); // each
 	    
 	if (error) {
+	    debug('saving failed: ' + JSON.stringify(error));
 	    client.hmset(rstats, { lasterror : new Date() });
 	    client.hincrby(rstats, "errorcnt", 1);
 
