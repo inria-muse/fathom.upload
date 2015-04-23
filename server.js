@@ -34,39 +34,10 @@ var db = new Db(dbname,
 		{safe: true});
 
 db.open(function(err, db) {
-    if (err) {
-	console.error(err);
+    if (err) {	
+	debug('db open failed',err);
 	process.exit(-1);
     }
-
-    // ensure indexes for known collections
-    _.each(['fathomstats','homenet','baseline','debugtool'],function(key) {
-	var collection = db.collection(key);
-
-	// per item index for quaranteed uniqueness
-	collection.ensureIndex(
-	    {uuid:1, objectid:1},
-	    {unique: true}, 
-	    function(err, result) {
-		if (err) { 
-		    debug("failed to set index: " + err);
-		    process.exit(-1);
-		}
-	    }
-	);
-
-	// per user index for quick access to single user data
-	collection.ensureIndex(
-	    {uuid:1},
-	    {unique: false}, 
-	    function(err, result) {
-		if (err) { 
-		    debug("failed to set index: " + err);
-		    process.exit(-1);
-		}
-	    }
-	);
-    });
 });
 
 // reset stats
@@ -77,7 +48,8 @@ client.hmset(rstats, {
     uploadcnt : 0,
     lastupload : 0,
     errorcnt : 0,
-    lasterror : 0 });
+    lasterror : 0 }
+);
 
 // main app
 var app = express();
