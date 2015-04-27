@@ -18,6 +18,13 @@ var port = parseInt(process.env.PORT) || 3000;
 var dburl = 'mongodb://'+server+':'+serverport+'/'+dbname;
 debug("mongodb: " + dburl);
 
+// catch all 
+process.on('uncaughtException', function(e) {
+    console.error('got unhandled exception');
+    console.error(e instanceof Error ? e.message : e);
+    process.exit(1);
+});
+
 // redis cli for runtime stats
 var client = redis.createClient();
 client.select(redisdb, function(res) {
