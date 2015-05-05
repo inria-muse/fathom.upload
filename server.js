@@ -5,8 +5,7 @@ var multiparty = require('multiparty');
 var bodyParser = require('body-parser')
 var redis = require("redis");
 var moment = require("moment");
-var Db = require('mongodb').Db;
-var Server = require('mongodb').Server;
+var MongoClient = require('mongodb').MongoClient;
 
 // configs
 var redisdb = parseInt(process.env.REDISDB) || 3;
@@ -15,14 +14,27 @@ var serverport = parseInt(process.env.MONGOPORT) || 27017;
 var dbname = process.env.MONGODB || 'test';
 var port = parseInt(process.env.PORT) || 3000;
 
+// catch all 
+process.on('uncaughtException', function(e) {
+    debug('got unhandled exception');
+    debug(e instanceof Error ? e.message : e);
+});
+
+// connect to the db
 var dburl = 'mongodb://'+server+':'+serverport+'/'+dbname;
 debug("mongodb: " + dburl);
 
-// catch all 
-process.on('uncaughtException', function(e) {
-    console.error('got unhandled exception');
-    console.error(e instanceof Error ? e.message : e);
-    process.exit(1);
+var db = undefined;
+MongoClient.connect(dburl, {
+    db : { w : 1, native_parser : true},
+    server : { poolSize : 10}
+}, function(err, _db) {
+    if (err) {	
+	debug('db open failed',err);
+	process.exit(-1);
+    } else {
+	db = _db;
+    }
 });
 
 // redis cli for runtime stats
@@ -30,21 +42,8 @@ var client = redis.createClient();
 client.select(redisdb, function(res) {
     debug("Redis select " + res);
 });
-
 client.on("error", function(err) {
     debug("Redis error " + err);
-});
-
-// connect to the db
-var db = new Db(dbname, 
-		new Server(server, serverport, {auto_reconnect: true}), 
-		{safe: true});
-
-db.open(function(err, db) {
-    if (err) {	
-	debug('db open failed',err);
-	process.exit(-1);
-    }
 });
 
 // reset stats
@@ -57,6 +56,26 @@ client.hmset(rstats, {
     errorcnt : 0,
     lasterror : 0 }
 );
+
+var incerror = function() {
+    try {
+	if (client) {
+	    client.hmset(rstats, { lasterror : new Date() });
+	    client.hincrby(rstats, "errorcnt", 1);
+	}
+    } catch(e) {
+    }
+};
+var incupload = function(c) {
+    try {
+	if (client) {
+	    // stats
+	    client.hmset(rstats, { lastupload : new Date() });
+	    client.hincrby(rstats, "uploadcnt", c);
+	}
+    } catch(e) {
+    }
+};
 
 // main app
 var app = express();
@@ -76,15 +95,7 @@ app.use(bodyParser.json({limit: '100mb'}));
 app.use(function(err, req, res, next){
     debug(err);
     debug(err.stack);
-
-    try {
-	if (client) {
-	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincrby(rstats, "errorcnt", 1);
-	}
-    } catch(e) {
-    }
-
+    incerror();
     res.type('application/json');
     res.status(500).send({ error: "internal server error",
 			   details: err});
@@ -118,7 +129,6 @@ app.all('/removeuser/:uuid', function(req,res) {
 	} else {
 	    client.hincrby(rstats, "removeusercnt", c);
 	    res.status(200).send();
-	    // TODO: send email to notify muse.fathom@inria.fr ?
 	}
     });
 });
@@ -130,7 +140,7 @@ app.post('/*', function(req,res) {
 
     var escapestr = function(s) {
         return s.replace(/\./g,'__dot__').replace(/\$/g,'__dollar__');
-    }
+    };
     
     var escape = function(obj) {
 	if (_.isArray(obj))
@@ -138,18 +148,19 @@ app.post('/*', function(req,res) {
 
 	_.each(obj, function(value,oldkey) {
 	    var newkey = escapestr(oldkey);
-	    if (newkey !== oldkey)
+	    if (newkey !== oldkey) {
 		debug("escape: " + oldkey + " -> " + newkey);
-            if (_.isObject(value) || _.isArray(value)) {
-                obj[newkey] = escape(value);
-            } else {
-		// primitive value
-                obj[newkey] = value;
-            }
-	    delete obj[oldkey];
+		if (_.isObject(value) || _.isArray(value)) {
+                    obj[newkey] = escape(value);
+		} else {
+		    // primitive value
+                    obj[newkey] = value;
+		}
+		delete obj[oldkey];
+	    }
         });
         return obj;
-    }
+    };
     
     var adddoc = function(obj) {
 	// required fields
@@ -183,9 +194,8 @@ app.post('/*', function(req,res) {
 
     var savedocs = function() {
 	if (c === 0) {
-	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincrby(rstats, "errorcnt", 1);
-
+	    debug('got zero objects');
+	    incerror();
 	    res.type('application/json');
 	    res.status(500).send({error: "got zero objects"});
 	    return;
@@ -233,17 +243,13 @@ app.post('/*', function(req,res) {
 	    
 	if (error) {
 	    debug('saving failed: ' + JSON.stringify(error));
-	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincrby(rstats, "errorcnt", 1);
-
+	    incerror();
 	    res.type('application/json');
 	    res.status(500).send({error: "internal server error",
 				  details: error});
 	} else {
-	    // stats
-	    client.hmset(rstats, { lastupload : new Date() });
-	    client.hincrby(rstats, "uploadcnt", c);
-	    res.sendStatus(200);
+	    incupload(c);
+	    res.status(200).send();
 	}
     };
     
@@ -252,7 +258,6 @@ app.post('/*', function(req,res) {
 
     if (req.get('Content-Type').indexOf('multipart/form-data')>=0) {
 	var form = new multiparty.Form({maxFields : 10000});
-
 	form.on('part', function(part) {
 	    // handle new part (json object)
 	    var json = '';
@@ -272,10 +277,7 @@ app.post('/*', function(req,res) {
 	form.on('error', function(err) {
 	    debug(err);
 	    debug(err.stack);
-
-	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincrby(rstats, "errorcnt", 1);
-
+	    incerror();
 	    res.type('application/json');	    
 	    res.status(500).send({ error: "internal server error",
 				   details: err});
@@ -301,17 +303,13 @@ app.post('/*', function(req,res) {
 	    savedocs();
 	} else {
 	    debug("invalid req.body: " + JSON.stringify(req.body));
-
-	    client.hmset(rstats, { lasterror : new Date() });
-	    client.hincrby(rstats, "errorcnt", 1);
-
+	    incerror();
 	    res.type('application/json'); 
 	    res.status(500).send({error: "invalid data"});
 	}
     } else {
-	client.hmset(rstats, { lasterror : new Date() });
-	client.hincrby(rstats, "errorcnt", 1);
-
+	debug("unknown content-type: " + +req.get('Content-Type'));
+	incerror();
 	res.type('application/json');
 	res.status(500).send({error: "unhandled content type: "+req.get('Content-Type')});
     }
