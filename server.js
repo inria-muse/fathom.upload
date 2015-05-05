@@ -157,6 +157,9 @@ app.post('/*', function(req,res) {
                     obj[newkey] = value;
 		}
 		delete obj[oldkey];
+	    } else if (_.isObject(value) || _.isArray(value)) {
+		// recurse into objects
+                obj[oldkey] = escape(value);
 	    }
         });
         return obj;
