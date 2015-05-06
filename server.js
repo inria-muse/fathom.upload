@@ -139,29 +139,23 @@ app.post('/*', function(req,res) {
     var docs = {};
 
     var escapestr = function(s) {
-        return s.replace(/\./g,'__dot__').replace(/\$/g,'__dollar__');
+        return (s ? s.replace(/\./g,'__dot__').replace(/\$/g,'__dollar__') : s);
     };
     
     var escape = function(obj) {
-	if (_.isArray(obj))
-	    return _.map(obj, escape);
-
-	_.each(obj, function(value,oldkey) {
-	    var newkey = escapestr(oldkey);
-	    if (newkey !== oldkey) {
-		debug("escape: " + oldkey + " -> " + newkey);
-		if (_.isObject(value) || _.isArray(value)) {
-                    obj[newkey] = escape(value);
-		} else {
-		    // primitive value
-                    obj[newkey] = value;
+	if (_.isArray(obj)) {
+	    obj = _.map(obj, escape);
+	} else if (_.isObject(value)) {
+	    _.each(obj, function(value,key) {
+		var newkey = escapestr(key);
+		if (newkey !== key) {
+		    debug("escape: " + key + " -> " + newkey);
+		    delete obj[key];
+		    key = newkey;
 		}
-		delete obj[oldkey];
-	    } else if (_.isObject(value) || _.isArray(value)) {
-		// recurse into objects
-                obj[oldkey] = escape(value);
-	    }
-        });
+                obj[key] = escape(value);
+            });
+	}
         return obj;
     };
     
