@@ -18,6 +18,8 @@ var port = parseInt(process.env.PORT) || 3000;
 process.on('uncaughtException', function(e) {
     debug('got unhandled exception');
     debug(e instanceof Error ? e.message : e);
+    console.error(e);
+    throw e;
 });
 
 // connect to the db
@@ -145,7 +147,7 @@ app.post('/*', function(req,res) {
     var escape = function(obj) {
 	if (_.isArray(obj)) {
 	    obj = _.map(obj, escape);
-	} else if (_.isObject(value)) {
+	} else if (_.isObject(obj)) {
 	    _.each(obj, function(value,key) {
 		var newkey = escapestr(key);
 		if (newkey !== key) {
