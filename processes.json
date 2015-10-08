@@ -2,7 +2,7 @@
   "apps" : [{
     "name"         : "fathomupload",
     "script"       : "server.js",
-    "instances"    : "10",
+    "instances"    : "3",
     "exec_mode"    : "cluster_mode",
     "error_file"   : "/home/nodeapp/logs/fathomupload.log",
     "out_file"     : "/home/nodeapp/logs/fathomupload.log",
@@ -15,7 +15,7 @@
 	"PORT"     : "3003",
 	"MONGOHOST": "ucn.inria.fr",
 	"MONGODB"  : "browsertest",
-        "DEBUG"    : "*"
+        "DEBUG"    : "fathomupload"
     }
   }]
 }
