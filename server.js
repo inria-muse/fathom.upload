@@ -152,7 +152,7 @@ app.post('/*', function(req,res) {
     var docs = {};
 
     var escapestr = function(s) {
-        return (s ? s.replace(/\./g,'__dot__').replace(/\$/g,'__dollar__') : s);
+        return (s ? s.replace(' ', '_').replace(/\./g,'__dot__').replace(/\$/g,'__dollar__') : s);
     };
     
     var escape = function(obj) {
@@ -223,14 +223,13 @@ app.post('/*', function(req,res) {
     	    var collection = db.collection(key);
     	    collection.insertMany(value, function(err, result) {
     		if (err) {
-    		    debug('insertMany failed: ' + JSON.stringify(error));
-
-                        if (("" + err).indexOf('duplicate key error')>=0) {
+    		    debug('insertMany failed: ' + err);
+                    if (("" + err).indexOf('duplicate key error')>=0) {
     			// ignore: something was uploaded twice
     			// can happen on errors
     		    } else if (("" + err).indexOf('must not contain')>=0) {
-                            // HACK --
-                            // MongoDB hack needed, no dots or dollar signs 
+                        // HACK --
+                        // MongoDB hack needed, no dots or dollar signs 
     			// allowed in key names ..
     			debug("mongo escape hack");
                             value = escape(value);
@@ -238,18 +237,17 @@ app.post('/*', function(req,res) {
     	                collection.insert(value, function(err, result) {
     			    debug('save err after hack ' + err);
     			    if (err && 
-    				("" + err).indexOf('duplicate key error')>=0) 
-    			    {
+    				("" + err).indexOf('duplicate key error')>=0) {
     				// ignore: something was uploaded twice
     			    } else if (err) {
     		                error = err;
-                                }
-                            });
-                            // HACK end --
-                        } else {
-    			// some other error
+                            }
+                        });
+                        // HACK end --
+                     } else {
+    			// some other error - will fail on this
     		        error = err;
-                        }
+                     }
     		} else {
     		    debug('inserted ' + result.result.n + ' documents');
     		}
