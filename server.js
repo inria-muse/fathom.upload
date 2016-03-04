@@ -232,16 +232,18 @@ app.post('/*', function(req,res) {
                         // MongoDB hack needed, no dots or dollar signs 
     			// allowed in key names ..
     			debug("mongo escape hack");
-                            value = escape(value);
+                        value = escape(value);
     			// try again
-    	                collection.insert(value, function(err, result) {
+    	                collection.insertMany(value, function(err, result) {
     			    debug('save err after hack ' + err);
     			    if (err && 
     				("" + err).indexOf('duplicate key error')>=0) {
     				// ignore: something was uploaded twice
     			    } else if (err) {
     		                error = err;
-                            }
+                            } else {
+    				debug('inserted ' + result.result.n + ' documents');
+			    }
                         });
                         // HACK end --
                      } else {
