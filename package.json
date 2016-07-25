@@ -8,13 +8,13 @@
     "stop": "pm2 stop processes.json"
   },
   "dependencies": {
-    "debug": "~2.2.0", 
-    "express": "~4.x",
-    "multiparty": "~4.1.2",
-    "body-parser": "~1.14.1",
-    "mongodb": "~2.0.52",
-    "underscore": "~1.8.3",
-    "redis" : "~2.4.2",
-    "moment" : "~2.10.6"
+    "debug": "^2.2.0", 
+    "express": "^4.0.0",
+    "multiparty": "^4.1.2",
+    "body-parser": "^1.14.1",
+    "mongodb": "^2.0.52",
+    "underscore": "^1.8.3",
+    "redis" : "^2.4.2",
+    "moment" : "^2.10.6"
   }
 }
