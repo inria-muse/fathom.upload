@@ -152,7 +152,7 @@ app.post('/*', function(req,res) {
     var docs = {};
 
     var escapestr = function(s) {
-        return (s ? s.replace(' ', '_').replace(/\./g,'__dot__').replace(/\$/g,'__dollar__') : s);
+        return (s && s.replace ? s.replace(' ', '_').replace(/\./g,'__dot__').replace(/\$/g,'__dollar__') : s);
     };
     
     var escape = function(obj) {
